@@ -8,7 +8,7 @@ define([
         '../Core/Event',
         '../Core/Math',
         '../Core/Rectangle',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './ImageryLayer'
     ], function(
         defaultValue,
@@ -19,7 +19,7 @@ define([
         Event,
         CesiumMath,
         Rectangle,
-        when,
+        Promise,
         ImageryLayer) {
     'use strict';
 
@@ -433,7 +433,7 @@ define([
             return undefined;
         }
 
-        return when.all(promises, function(results) {
+        return Promise.all(promises, function(results) {
             var features = [];
 
             for (var resultIndex = 0; resultIndex < results.length; ++resultIndex) {

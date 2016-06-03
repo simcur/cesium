@@ -14,7 +14,7 @@ define([
         '../Core/RuntimeError',
         '../Core/TileProviderError',
         '../Core/WebMercatorTilingScheme',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BingMapsStyle',
         './DiscardMissingTileImagePolicy',
         './ImageryProvider'
@@ -33,7 +33,7 @@ define([
         RuntimeError,
         TileProviderError,
         WebMercatorTilingScheme,
-        when,
+        Promise,
         BingMapsStyle,
         DiscardMissingTileImagePolicy,
         ImageryProvider) {
@@ -143,7 +143,7 @@ define([
         this._errorEvent = new Event();
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         var metadataUrl = this._url + '/REST/v1/Imagery/Metadata/' + this._mapStyle + '?incl=ImageryProviders&key=' + this._key;
         var that = this;
@@ -215,7 +215,7 @@ define([
                 callbackParameterName : 'jsonp',
                 proxy : that._proxy
             });
-            when(metadata, metadataSuccess, metadataFailure);
+            metadata.then(metadataSuccess).catch(metadataFailure);
         }
 
         requestMetadata();

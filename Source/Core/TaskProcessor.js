@@ -1,7 +1,7 @@
 /*global define*/
 define([
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './buildModuleUrl',
         './defaultValue',
         './defined',
@@ -13,7 +13,7 @@ define([
         'require'
     ], function(
         Uri,
-        when,
+        Promise,
         buildModuleUrl,
         defaultValue,
         defined,
@@ -44,23 +44,21 @@ define([
                 return TaskProcessor._canTransferArrayBuffer;
             }
 
-            var deferred = when.defer();
+            TaskProcessor._canTransferArrayBuffer = new Promise(function(resolve, reject) {
+                worker.onmessage = function(event) {
+                    var array = event.data.array;
 
-            worker.onmessage = function(event) {
-                var array = event.data.array;
+                    // some versions of Firefox silently fail to transfer typed arrays.
+                    // https://bugzilla.mozilla.org/show_bug.cgi?id=841904
+                    // Check to make sure the value round-trips successfully.
+                    var result = defined(array) && array[0] === value;
+                    resolve(result);
 
-                // some versions of Firefox silently fail to transfer typed arrays.
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=841904
-                // Check to make sure the value round-trips successfully.
-                var result = defined(array) && array[0] === value;
-                deferred.resolve(result);
+                    worker.terminate();
 
-                worker.terminate();
-
-                TaskProcessor._canTransferArrayBuffer = result;
-            };
-
-            TaskProcessor._canTransferArrayBuffer = deferred.promise;
+                    TaskProcessor._canTransferArrayBuffer = result;
+                };
+            });
         }
 
         return TaskProcessor._canTransferArrayBuffer;
@@ -221,25 +219,26 @@ define([
         ++this._activeTasks;
 
         var processor = this;
-        return when(canTransferArrayBuffer(), function(canTransferArrayBuffer) {
-            if (!defined(transferableObjects)) {
-                transferableObjects = emptyTransferableObjectArray;
-            } else if (!canTransferArrayBuffer) {
-                transferableObjects.length = 0;
-            }
+        return canTransferArrayBuffer()
+            .then(function(canTransferArrayBuffer) {
+                if (!defined(transferableObjects)) {
+                    transferableObjects = emptyTransferableObjectArray;
+                } else if (!canTransferArrayBuffer) {
+                    transferableObjects.length = 0;
+                }
 
-            var id = processor._nextID++;
-            var deferred = when.defer();
-            processor._deferreds[id] = deferred;
+                var id = processor._nextID++;
+                var deferred = Promise.defer();
+                processor._deferreds[id] = deferred;
 
-            processor._worker.postMessage({
-                id : id,
-                parameters : parameters,
-                canTransferArrayBuffer : canTransferArrayBuffer
-            }, transferableObjects);
+                processor._worker.postMessage({
+                    id : id,
+                    parameters : parameters,
+                    canTransferArrayBuffer : canTransferArrayBuffer
+                }, transferableObjects);
 
-            return deferred.promise;
-        });
+                return deferred.promise;
+            });
     };
 
     /**

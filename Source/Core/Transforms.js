@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './Cartesian2',
         './Cartesian3',
         './Cartesian4',
@@ -20,7 +20,7 @@ define([
         './Quaternion',
         './TimeConstants'
     ], function(
-        when,
+        Promise,
         Cartesian2,
         Cartesian3,
         Cartesian4,
@@ -548,7 +548,7 @@ define([
         var xysPromise = Transforms.iau2006XysData.preload(startDayTT, startSecondTT, stopDayTT, stopSecondTT);
         var eopPromise = Transforms.earthOrientationParameters.getPromiseToLoad();
 
-        return when.all([xysPromise, eopPromise]);
+        return Promise.join(xysPromise, eopPromise);
     };
 
     /**

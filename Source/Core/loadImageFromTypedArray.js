@@ -1,11 +1,11 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defined',
         './DeveloperError',
         './loadImage'
     ], function(
-        when,
+        Promise,
         defined,
         DeveloperError,
         loadImage) {
@@ -35,7 +35,7 @@ define([
             return image;
         }, function(error) {
             window.URL.revokeObjectURL(blobUrl);
-            return when.reject(error);
+            return Promise.reject(error);
         });
     }
 

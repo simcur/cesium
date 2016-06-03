@@ -1,10 +1,10 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './loadBlob',
         './loadImage'
     ], function(
-        when,
+        Promise,
         loadBlob,
         loadImage) {
     'use strict';
@@ -60,7 +60,7 @@ define([
                 return image;
             }, function(error) {
                 window.URL.revokeObjectURL(blobUrl);
-                return when.reject(error);
+                return Promise.reject(error);
             });
         });
     }

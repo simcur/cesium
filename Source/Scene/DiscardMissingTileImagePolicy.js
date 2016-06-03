@@ -5,14 +5,14 @@ define([
         '../Core/DeveloperError',
         '../Core/getImagePixels',
         '../Core/loadImageViaBlob',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         defaultValue,
         defined,
         DeveloperError,
         getImagePixels,
         loadImageViaBlob,
-        when) {
+        Promise) {
     'use strict';
 
     /**
@@ -86,7 +86,7 @@ define([
             that._isReady = true;
         }
 
-        when(loadImageViaBlob(options.missingImageUrl), success, failure);
+        loadImageViaBlob(options.missingImageUrl).then(success).catch(failure);
     }
 
     /**

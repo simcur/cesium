@@ -12,7 +12,7 @@ define([
         '../Core/RuntimeError',
         '../Core/TileProviderError',
         '../Core/WebMercatorTilingScheme',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './ImageryProvider'
     ], function(
         Credit,
@@ -27,7 +27,7 @@ define([
         RuntimeError,
         TileProviderError,
         WebMercatorTilingScheme,
-        when,
+        Promise,
         ImageryProvider) {
     'use strict';
 
@@ -141,7 +141,7 @@ define([
         this._errorEvent = new Event();
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         var metadataUrl = this._url + this._path + '/query?request=Json&vars=geeServerDefs&is2d=t';
         var that = this;
@@ -220,7 +220,7 @@ define([
           var url = (!defined(that._proxy)) ? metadataUrl : that._proxy.getURL(metadataUrl);
 
           var metadata = loadText(url);
-          when(metadata, metadataSuccess, metadataFailure);
+          metadata.then(metadataSuccess).catch(metadataFailure);
         }
 
         requestMetadata();

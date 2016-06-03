@@ -37,7 +37,7 @@ define([
         '../Renderer/VertexArray',
         '../Shaders/ReprojectWebMercatorFS',
         '../Shaders/ReprojectWebMercatorVS',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './Imagery',
         './ImageryState',
         './TileImagery'
@@ -79,7 +79,7 @@ define([
         VertexArray,
         ReprojectWebMercatorFS,
         ReprojectWebMercatorVS,
-        when,
+        Promise,
         Imagery,
         ImageryState,
         TileImagery) {
@@ -659,7 +659,7 @@ define([
                 imagery.credits = imageryProvider.getTileCredits(imagery.x, imagery.y, imagery.level);
             }
 
-            when(imagePromise, success, failure);
+            imagePromise.then(success).catch(failure);
         }
 
         doRequest();

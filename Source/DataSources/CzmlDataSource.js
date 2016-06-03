@@ -35,7 +35,7 @@ define([
         '../Scene/LabelStyle',
         '../Scene/VerticalOrigin',
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BillboardGraphics',
         './ColorMaterialProperty',
         './CompositeMaterialProperty',
@@ -108,7 +108,7 @@ define([
         LabelStyle,
         VerticalOrigin,
         Uri,
-        when,
+        Promise,
         BillboardGraphics,
         ColorMaterialProperty,
         CompositeMaterialProperty,
@@ -1529,22 +1529,24 @@ define([
 
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
 
-        var promise = czml;
+        var promise;
         var sourceUri = options.sourceUri;
         if (typeof czml === 'string') {
             promise = loadJson(czml);
             sourceUri = defaultValue(sourceUri, czml);
+        } else {
+            promise = Promise.resolve(czml);
         }
 
         DataSource.setLoading(dataSource, true);
 
-        return when(promise, function(czml) {
+        return promise.then(function(czml) {
             return loadCzml(dataSource, czml, sourceUri, clear);
-        }).otherwise(function(error) {
+        }).catch(function(error) {
             DataSource.setLoading(dataSource, false);
             dataSource._error.raiseEvent(dataSource, error);
             console.log(error);
-            return when.reject(error);
+            return Promise.reject(error);
         });
     }
 

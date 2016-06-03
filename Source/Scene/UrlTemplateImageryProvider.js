@@ -20,7 +20,7 @@ define([
         '../Core/Rectangle',
         '../Core/TileProviderError',
         '../Core/WebMercatorTilingScheme',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './ImageryProvider'
     ], function(
         Cartesian2,
@@ -43,7 +43,7 @@ define([
         Rectangle,
         TileProviderError,
         WebMercatorTilingScheme,
-        when,
+        Promise,
         ImageryProvider) {
     'use strict';
 
@@ -162,7 +162,7 @@ define([
         if (!defined(options)) {
           throw new DeveloperError('options is required.');
         }
-        if (!when.isPromise(options) && !defined(options.url)) {
+        if ((typeof options.then !== 'function') && !defined(options.url)) {
           throw new DeveloperError('options is required.');
         }
         //>>includeEnd('debug');
@@ -491,7 +491,7 @@ define([
      */
     UrlTemplateImageryProvider.prototype.reinitialize = function(options) {
         var that = this;
-        that._readyPromise = when(options).then(function(properties) {
+        that._readyPromise = Promise.resolve(options).then(function(properties) {
             //>>includeStart('debug', pragmas.debug);
             if (!defined(properties)) {
                 throw new DeveloperError('options is required.');
@@ -614,7 +614,7 @@ define([
         function doRequest() {
             if (formatIndex >= that._getFeatureInfoFormats.length) {
                 // No valid formats, so no features picked.
-                return when([]);
+                return Promise.resolve([]);
             }
 
             var format = that._getFeatureInfoFormats[formatIndex];

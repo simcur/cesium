@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue',
         './defined',
         './defineProperties',
@@ -14,7 +14,7 @@ define([
         './TerrainMesh',
         './TerrainProvider'
     ], function(
-        when,
+        Promise,
         defaultValue,
         defined,
         defineProperties,
@@ -215,7 +215,7 @@ define([
         }
 
         var that = this;
-        return when(verticesPromise, function(result) {
+        return verticesPromise.then(function(result) {
             that._mesh = new TerrainMesh(
                     center,
                     new Float32Array(result.vertices),

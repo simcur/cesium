@@ -22,7 +22,7 @@ define([
         '../Shaders/GlobeFS',
         '../Shaders/GlobeVS',
         '../Shaders/GroundAtmosphere',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './GlobeSurfaceShaderSet',
         './GlobeSurfaceTileProvider',
         './ImageryLayerCollection',
@@ -51,7 +51,7 @@ define([
         GlobeFS,
         GlobeVS,
         GroundAtmosphere,
-        when,
+        Promise,
         GlobeSurfaceShaderSet,
         GlobeSurfaceTileProvider,
         ImageryLayerCollection,
@@ -467,7 +467,7 @@ define([
 
             if (defined(oceanNormalMapUrl)) {
                 var that = this;
-                when(loadImage(oceanNormalMapUrl), function(image) {
+                loadImage(oceanNormalMapUrl).then(function(image) {
                     if (oceanNormalMapUrl !== that.oceanNormalMapUrl) {
                         // url changed while we were loading
                         return;

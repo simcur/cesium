@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BoundingSphere',
         './Cartesian2',
         './Cartesian3',
@@ -16,7 +16,7 @@ define([
         './TerrainEncoding',
         './TerrainMesh'
     ], function(
-        when,
+        Promise,
         BoundingSphere,
         Cartesian2,
         Cartesian3,
@@ -294,7 +294,7 @@ define([
         }
 
         var that = this;
-        return when(verticesPromise, function(result) {
+        return verticesPromise.then(function(result) {
             var vertexCount = that._quantizedVertices.length / 3;
             vertexCount += that._westIndices.length + that._southIndices.length + that._eastIndices.length + that._northIndices.length;
             var indicesTypedArray = IndexDatatype.createTypedArray(vertexCount, result.indices);
@@ -429,7 +429,7 @@ define([
         var eastSkirtHeight = isEastChild ? this._eastSkirtHeight : (shortestSkirt * 0.5);
         var northSkirtHeight = isNorthChild ? this._northSkirtHeight : (shortestSkirt * 0.5);
 
-        return when(upsamplePromise, function(result) {
+        return upsamplePromise.then(function(result) {
             var quantizedVertices = new Uint16Array(result.vertices);
             var indicesTypedArray = IndexDatatype.createTypedArray(quantizedVertices.length / 3, result.indices);
             var encodedNormals;

@@ -6,7 +6,7 @@ define([
         '../Core/destroyObject',
         '../Core/DeveloperError',
         '../Core/Event',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         defaultValue,
         defined,
@@ -14,7 +14,7 @@ define([
         destroyObject,
         DeveloperError,
         Event,
-        when) {
+        Promise) {
     'use strict';
 
     /**
@@ -85,7 +85,7 @@ define([
 
         var that = this;
         var dataSources = this._dataSources;
-        return when(dataSource, function(value) {
+        return Promise.resolve(dataSource).then(function(value) {
             //Only add the data source if removeAll has not been called
             //Since it was added.
             if (dataSources === that._dataSources) {

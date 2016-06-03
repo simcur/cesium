@@ -1,11 +1,11 @@
 /*global define*/
 define([
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue'
     ], function(
         Uri,
-        when,
+        Promise,
         defaultValue) {
     'use strict';
 
@@ -65,13 +65,15 @@ define([
 
         activeRequests[server] = activeRequestsForServer + 1;
 
-        return when(requestFunction(url), function(result) {
-            activeRequests[server]--;
-            return result;
-        }).otherwise(function(error) {
-            activeRequests[server]--;
-            return when.reject(error);
-        });
+        return requestFunction(url)
+            .then(function(result) {
+                activeRequests[server]--;
+                return result;
+            })
+            .catch(function(error) {
+                activeRequests[server]--;
+                return Promise.reject(error);
+            });
     }
 
     /**

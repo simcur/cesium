@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './binarySearch',
         './defaultValue',
         './defined',
@@ -13,7 +13,7 @@ define([
         './TimeConstants',
         './TimeStandard'
     ], function(
-        when,
+        Promise,
         binarySearch,
         defaultValue,
         defined,
@@ -85,7 +85,20 @@ define([
         this._columnCount = 0;
         this._lastIndex = -1;
 
-        this._downloadPromise = undefined;
+        var that = this;
+        this._downloadPromise = new Promise(function(resolve, reject) {
+            if (defined(options.url)) {
+                // Download EOP data.
+                return loadJson(options.url)
+                    .then(function(eopData) {
+                        onDataReady(that, eopData);
+                    })
+                    .catch(function() {
+                        that._dataError = 'An error occurred while retrieving the EOP data from the URL ' + options.url + '.';
+                    });
+            }
+            return undefined;
+        });
         this._dataError = undefined;
 
         this._addNewLeapSeconds = defaultValue(options.addNewLeapSeconds, true);
@@ -93,15 +106,7 @@ define([
         if (defined(options.data)) {
             // Use supplied EOP data.
             onDataReady(this, options.data);
-        } else if (defined(options.url)) {
-            // Download EOP data.
-            var that = this;
-            this._downloadPromise = when(loadJson(options.url), function(eopData) {
-                onDataReady(that, eopData);
-            }, function() {
-                that._dataError = 'An error occurred while retrieving the EOP data from the URL ' + options.url + '.';
-            });
-        } else {
+        } else if (!defined(options.url)) {
             // Use all zeros for EOP data.
             onDataReady(this, {
                 'columnNames' : ['dateIso8601', 'modifiedJulianDateUtc', 'xPoleWanderRadians', 'yPoleWanderRadians', 'ut1MinusUtcSeconds', 'lengthOfDayCorrectionSeconds', 'xCelestialPoleOffsetRadians', 'yCelestialPoleOffsetRadians', 'taiMinusUtcSeconds'],
@@ -115,7 +120,7 @@ define([
      */
     EarthOrientationParameters.NONE = freezeObject({
             getPromiseToLoad : function() {
-                return when();
+                return Promise.resolve();
             },
             compute : function(date, result) {
                 if (!defined(result)) {
@@ -140,7 +145,7 @@ define([
      * @see when
      */
     EarthOrientationParameters.prototype.getPromiseToLoad = function() {
-        return when(this._downloadPromise);
+        return this._downloadPromise;
     };
 
     /**

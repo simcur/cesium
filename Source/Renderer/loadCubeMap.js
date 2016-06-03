@@ -3,13 +3,13 @@ define([
         '../Core/defined',
         '../Core/DeveloperError',
         '../Core/loadImage',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './CubeMap'
     ], function(
         defined,
         DeveloperError,
         loadImage,
-        when,
+        Promise,
         CubeMap) {
     'use strict';
 
@@ -80,7 +80,7 @@ define([
             loadImage(urls.negativeZ, allowCrossOrigin)
         ];
 
-        return when.all(facePromises, function(images) {
+        return Promise.all(facePromises, function(images) {
             return new CubeMap({
                 context : context,
                 source : {

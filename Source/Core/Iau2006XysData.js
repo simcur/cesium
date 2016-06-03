@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './buildModuleUrl',
         './defaultValue',
         './defined',
@@ -9,7 +9,7 @@ define([
         './loadJson',
         './TimeStandard'
     ], function(
-        when,
+        Promise,
         buildModuleUrl,
         defaultValue,
         defined,
@@ -122,7 +122,7 @@ define([
             promises.push(requestXysChunk(this, i));
         }
 
-        return when.all(promises);
+        return Promise.all(promises);
     };
 
     /**
@@ -232,33 +232,32 @@ define([
             return xysData._chunkDownloadsInProgress[chunkIndex];
         }
 
-        var deferred = when.defer();
-
-        xysData._chunkDownloadsInProgress[chunkIndex] = deferred;
-
-        var chunkUrl;
-        var xysFileUrlTemplate = xysData._xysFileUrlTemplate;
-        if (defined(xysFileUrlTemplate)) {
-            chunkUrl = xysFileUrlTemplate.replace('{0}', chunkIndex);
-        } else {
-            chunkUrl = buildModuleUrl('Assets/IAU2006_XYS/IAU2006_XYS_' + chunkIndex + '.json');
-        }
-
-        when(loadJson(chunkUrl), function(chunk) {
-            xysData._chunkDownloadsInProgress[chunkIndex] = false;
-
-            var samples = xysData._samples;
-            var newSamples = chunk.samples;
-            var startIndex = chunkIndex * xysData._samplesPerXysFile * 3;
-
-            for ( var i = 0, len = newSamples.length; i < len; ++i) {
-                samples[startIndex + i] = newSamples[i];
+        var promise = new Promise(function(resolve, reject) {
+            var chunkUrl;
+            var xysFileUrlTemplate = xysData._xysFileUrlTemplate;
+            if (defined(xysFileUrlTemplate)) {
+                chunkUrl = xysFileUrlTemplate.replace('{0}', chunkIndex);
+            } else {
+                chunkUrl = buildModuleUrl('Assets/IAU2006_XYS/IAU2006_XYS_' + chunkIndex + '.json');
             }
 
-            deferred.resolve();
+            loadJson(chunkUrl).then(function(chunk) {
+                xysData._chunkDownloadsInProgress[chunkIndex] = false;
+
+                var samples = xysData._samples;
+                var newSamples = chunk.samples;
+                var startIndex = chunkIndex * xysData._samplesPerXysFile * 3;
+
+                for ( var i = 0, len = newSamples.length; i < len; ++i) {
+                    samples[startIndex + i] = newSamples[i];
+                }
+
+                resolve();
+            });
         });
 
-        return deferred.promise;
+        xysData._chunkDownloadsInProgress[chunkIndex] = promise;
+        return promise;
     }
 
     return Iau2006XysData;

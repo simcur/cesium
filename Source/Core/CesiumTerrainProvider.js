@@ -1,7 +1,7 @@
 /*global define*/
 define([
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BoundingSphere',
         './Cartesian3',
         './Credit',
@@ -26,7 +26,7 @@ define([
         './TileProviderError'
     ], function(
         Uri,
-        when,
+        Promise,
         BoundingSphere,
         Cartesian3,
         Credit,
@@ -148,7 +148,7 @@ define([
         this._credit = credit;
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         var metadataUrl = joinUrls(this._url, 'layer.json');
         if (defined(this._proxy)) {
@@ -246,8 +246,9 @@ define([
         }
 
         function requestMetadata() {
-            var metadata = loadJson(metadataUrl);
-            when(metadata, metadataSuccess, metadataFailure);
+            loadJson(metadataUrl)
+                .then(metadataSuccess)
+                .catch(metadataFailure);
         }
 
         requestMetadata();
@@ -531,7 +532,7 @@ define([
         }
 
         var that = this;
-        return when(promise, function(buffer) {
+        return promise.then(function(buffer) {
             if (defined(that._heightmapStructure)) {
                 return createHeightmapTerrainData(that, buffer, level, x, y, tmsY);
             } else {

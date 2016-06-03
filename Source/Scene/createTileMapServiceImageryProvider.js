@@ -15,7 +15,7 @@ define([
         '../Core/RuntimeError',
         '../Core/TileProviderError',
         '../Core/WebMercatorTilingScheme',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './UrlTemplateImageryProvider'
     ], function(
         Cartesian2,
@@ -33,7 +33,7 @@ define([
         RuntimeError,
         TileProviderError,
         WebMercatorTilingScheme,
-        when,
+        Promise,
         UrlTemplateImageryProvider) {
     'use strict';
 
@@ -101,7 +101,7 @@ define([
 
         var url = options.url;
 
-        var deferred = when.defer();
+        var deferred = Promise.defer();
         var imageryProvider = new UrlTemplateImageryProvider(deferred.promise);
 
         var metadataError;

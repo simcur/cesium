@@ -11,7 +11,7 @@ define([
         '../Renderer/Buffer',
         '../Renderer/BufferUsage',
         '../Renderer/VertexArray',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './TerrainState',
         './TileBoundingBox'
     ], function(
@@ -26,7 +26,7 @@ define([
         Buffer,
         BufferUsage,
         VertexArray,
-        when,
+        Promise,
         TerrainState,
         TileBoundingBox) {
     'use strict';
@@ -139,7 +139,7 @@ define([
             if (defined(tileTerrain.data)) {
                 tileTerrain.state = TerrainState.RECEIVING;
 
-                when(tileTerrain.data, success, failure);
+                tileTerrain.data.then(success).catch(failure);
             } else {
                 // Deferred - try again later.
                 tileTerrain.state = TerrainState.UNLOADED;
@@ -173,10 +173,10 @@ define([
             this.state = TerrainState.RECEIVING;
 
             var that = this;
-            when(this.data, function(terrainData) {
+            this.data.then(function(terrainData) {
                 that.data = terrainData;
                 that.state = TerrainState.RECEIVED;
-            }, function() {
+            }).catch(function() {
                 that.state = TerrainState.FAILED;
             });
         }
@@ -203,10 +203,10 @@ define([
 
         tileTerrain.state = TerrainState.TRANSFORMING;
 
-        when(meshPromise, function(mesh) {
+        meshPromise.then(function(mesh) {
             tileTerrain.mesh = mesh;
             tileTerrain.state = TerrainState.TRANSFORMED;
-        }, function() {
+        }).catch(function() {
             tileTerrain.state = TerrainState.FAILED;
         });
     }

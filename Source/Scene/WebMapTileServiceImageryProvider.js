@@ -13,7 +13,7 @@ define([
         '../Core/Rectangle',
         '../Core/WebMercatorTilingScheme',
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './ImageryProvider'
     ], function(
         combine,
@@ -29,7 +29,7 @@ define([
         Rectangle,
         WebMercatorTilingScheme,
         Uri,
-        when,
+        Promise,
         ImageryProvider) {
     'use strict';
 
@@ -131,7 +131,7 @@ define([
 
         this._rectangle = defaultValue(options.rectangle, this._tilingScheme.rectangle);
 
-        this._readyPromise = when.resolve(true);
+        this._readyPromise = Promise.resolve(true);
 
         // Check the number of tiles at the minimum level.  If it's more than four,
         // throw an exception, because starting at the higher minimum

@@ -23,7 +23,7 @@ define([
         '../../Scene/ImageryLayer',
         '../../Scene/SceneMode',
         '../../ThirdParty/knockout',
-        '../../ThirdParty/when',
+        '../../ThirdParty/bluebird',
         '../Animation/Animation',
         '../Animation/AnimationViewModel',
         '../BaseLayerPicker/BaseLayerPicker',
@@ -66,7 +66,7 @@ define([
         ImageryLayer,
         SceneMode,
         knockout,
-        when,
+        Promise,
         Animation,
         AnimationViewModel,
         BaseLayerPicker,
@@ -139,7 +139,7 @@ define([
             description : 'Loading feature information...'
         });
 
-        when(imageryLayerFeaturePromise, function(features) {
+        imageryLayerFeaturePromise.then(function(features) {
             // Has this async pick been superseded by a later one?
             if (viewer.selectedEntity !== loadingMessage) {
                 return;
@@ -1677,12 +1677,12 @@ Either specify options.terrainProvider instead or set options.baseLayerPicker to
         //bounding spheres have been computed.  Therefore we create and return
         //a deferred which will be resolved as part of the post-render step in the
         //frame that actually performs the zoom
-        var zoomPromise = when.defer();
+        var zoomPromise = Promise.defer();
         that._zoomPromise = zoomPromise;
         that._zoomIsFlight = isFlight;
         that._zoomOptions = options;
 
-        when(zoomTarget, function(zoomTarget) {
+        Promise.resolve(zoomTarget).then(function(zoomTarget) {
             //Only perform the zoom if it wasn't cancelled before the promise resolved.
             if (that._zoomPromise !== zoomPromise) {
                 return;

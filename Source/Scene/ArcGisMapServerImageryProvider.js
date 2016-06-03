@@ -19,7 +19,7 @@ define([
         '../Core/TileProviderError',
         '../Core/WebMercatorProjection',
         '../Core/WebMercatorTilingScheme',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './DiscardMissingTileImagePolicy',
         './ImageryLayerFeatureInfo',
         './ImageryProvider'
@@ -43,7 +43,7 @@ define([
         TileProviderError,
         WebMercatorProjection,
         WebMercatorTilingScheme,
-        when,
+        Promise,
         DiscardMissingTileImagePolicy,
         ImageryLayerFeatureInfo,
         ImageryProvider) {
@@ -147,7 +147,7 @@ define([
         this._errorEvent = new Event();
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         // Grab the details of this MapServer.
         var that = this;
@@ -235,7 +235,7 @@ define([
                 parameters : parameters,
                 proxy : that._proxy
             });
-            when(metadata, metadataSuccess, metadataFailure);
+            metadata.then(metadataSuccess).catch(metadataFailure);
         }
 
         if (this._useTiles) {

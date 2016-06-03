@@ -28,7 +28,7 @@ define([
         '../Renderer/ShaderProgram',
         '../Renderer/ShaderSource',
         '../Renderer/VertexArray',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './CullFace',
         './Pass',
         './PrimitivePipeline',
@@ -63,7 +63,7 @@ define([
         ShaderProgram,
         ShaderSource,
         VertexArray,
-        when,
+        Promise,
         CullFace,
         Pass,
         PrimitivePipeline,
@@ -349,7 +349,7 @@ define([
 
         this._createGeometryResults = undefined;
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
     }
 
     defineProperties(Primitive.prototype, {

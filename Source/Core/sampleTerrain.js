@@ -1,10 +1,10 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defined',
         './DeveloperError'
     ], function(
-        when,
+        Promise,
         defined,
         DeveloperError) {
     'use strict';
@@ -56,21 +56,9 @@ define([
         }
         //>>includeEnd('debug');
 
-        var deferred = when.defer();
-
-        function doSamplingWhenReady() {
-            if (terrainProvider.ready) {
-                when(doSampling(terrainProvider, level, positions), function(updatedPositions) {
-                    deferred.resolve(updatedPositions);
-                });
-            } else {
-                setTimeout(doSamplingWhenReady, 10);
-            }
-        }
-
-        doSamplingWhenReady();
-
-        return deferred.promise;
+        return terrainProvider.readyPromise.then(function() {
+            return doSampling(terrainProvider, level, positions);
+        });
     }
 
     function doSampling(terrainProvider, level, positions) {
@@ -108,11 +96,13 @@ define([
         for (i = 0; i < tileRequests.length; ++i) {
             var tileRequest = tileRequests[i];
             var requestPromise = tileRequest.terrainProvider.requestTileGeometry(tileRequest.x, tileRequest.y, tileRequest.level, false);
-            var tilePromise = when(requestPromise, createInterpolateFunction(tileRequest), createMarkFailedFunction(tileRequest));
+            var tilePromise = requestPromise
+                .then(createInterpolateFunction(tileRequest))
+                .catch(createMarkFailedFunction(tileRequest));
             tilePromises.push(tilePromise);
         }
 
-        return when.all(tilePromises, function() {
+        return Promise.all(tilePromises, function() {
             return positions;
         });
     }

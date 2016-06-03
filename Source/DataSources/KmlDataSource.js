@@ -36,7 +36,7 @@ define([
         '../Scene/SceneMode',
         '../ThirdParty/Autolinker',
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         '../ThirdParty/zip',
         './BillboardGraphics',
         './CompositePositionProperty',
@@ -93,7 +93,7 @@ define([
         SceneMode,
         Autolinker,
         Uri,
-        when,
+        Promise,
         zip,
         BillboardGraphics,
         CompositePositionProperty,
@@ -208,44 +208,48 @@ define([
     var BILLBOARD_FAR_RATIO = 0.1;
 
     function isZipFile(blob) {
-        var magicBlob = blob.slice(0, Math.min(4, blob.size));
-        var deferred = when.defer();
-        var reader = new FileReader();
-        reader.addEventListener('load', function() {
-            deferred.resolve(new DataView(reader.result).getUint32(0, false) === 0x504b0304);
+        return new Promise(function(resolve, reject) {
+            var magicBlob = blob.slice(0, Math.min(4, blob.size));
+            var reader = new FileReader();
+            reader.addEventListener('load', function() {
+                resolve(new DataView(reader.result).getUint32(0, false) === 0x504b0304);
+            });
+            reader.addEventListener('error', function() {
+                reject(reader.error);
+            });
+            reader.readAsArrayBuffer(magicBlob);
         });
-        reader.addEventListener('error', function() {
-            deferred.reject(reader.error);
-        });
-        reader.readAsArrayBuffer(magicBlob);
-        return deferred.promise;
     }
 
     function readBlobAsText(blob) {
-        var deferred = when.defer();
-        var reader = new FileReader();
-        reader.addEventListener('load', function() {
-            deferred.resolve(reader.result);
-        });
-        reader.addEventListener('error', function() {
-            deferred.reject(reader.error);
-        });
-        reader.readAsText(blob);
-        return deferred.promise;
-    }
-
-    function loadXmlFromZip(reader, entry, uriResolver, deferred) {
-        entry.getData(new zip.TextWriter(), function(text) {
-            uriResolver.kml = parser.parseFromString(text, 'application/xml');
-            deferred.resolve();
+        return new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.addEventListener('load', function() {
+                resolve(reader.result);
+            });
+            reader.addEventListener('error', function() {
+                reject(reader.error);
+            });
+            reader.readAsText(blob);
         });
     }
 
-    function loadDataUriFromZip(reader, entry, uriResolver, deferred) {
-        var mimeType = defaultValue(MimeTypes.detectFromFilename(entry.filename), 'application/octet-stream');
-        entry.getData(new zip.Data64URIWriter(mimeType), function(dataUri) {
-            uriResolver[entry.filename] = dataUri;
-            deferred.resolve();
+    function loadXmlFromZip(entry, uriResolver) {
+        return new Promise(function(resolve) {
+            entry.getData(new zip.TextWriter(), function(text) {
+                uriResolver.kml = parser.parseFromString(text, 'application/xml');
+                resolve();
+            });
+        });
+    }
+
+    function loadDataUriFromZip(entry, uriResolver) {
+        return new Promise(function(resolve) {
+            var mimeType = defaultValue(MimeTypes.detectFromFilename(entry.filename), 'application/octet-stream');
+            entry.getData(new zip.Data64URIWriter(mimeType), function(dataUri) {
+                uriResolver[entry.filename] = dataUri;
+                resolve();
+            });
         });
     }
 
@@ -848,7 +852,7 @@ define([
 
     //Asynchronously processes an external style file.
     function processExternalStyles(dataSource, uri, styleCollection) {
-        return when(loadXML(proxyUrl(uri, dataSource._proxy)), function(styleKml) {
+        return loadXML(proxyUrl(uri, dataSource._proxy)).then(function(styleKml) {
             return processStyles(dataSource, styleKml, styleCollection, uri, true);
         });
     }
@@ -1844,7 +1848,7 @@ define([
                 var linkUrl = processNetworkLinkQueryString(dataSource._camera, dataSource._canvas, joinUrls(href, queryString, false),
                                                             viewBoundScale, dataSource._lastCameraView.bbox);
 
-                var promise = when(load(dataSource, networkLinkCollection, linkUrl), function(rootElement) {
+                var promise = load(dataSource, networkLinkCollection, linkUrl).then(function(rootElement) {
                     var entities = dataSource._entityCollection;
                     var newEntities = networkLinkCollection.values;
                     entities.suspendEvents();
@@ -1957,8 +1961,6 @@ define([
     }
 
     function loadKml(dataSource, entityCollection, kml, sourceUri, uriResolver) {
-        var deferred = when.defer();
-
         entityCollection.removeAll();
 
         var documentElement = kml.documentElement;
@@ -1974,65 +1976,61 @@ define([
         }
 
         var styleCollection = new EntityCollection(dataSource);
-        when.all(processStyles(dataSource, kml, styleCollection, sourceUri, false, uriResolver), function() {
-            var element = kml.documentElement;
-            if (element.localName === 'kml') {
-                var childNodes = element.childNodes;
-                for (var i = 0; i < childNodes.length; i++) {
-                    var tmp = childNodes[i];
-                    if (defined(featureTypes[tmp.localName])) {
-                        element = tmp;
-                        break;
-                    }
-                }
-            }
-            entityCollection.suspendEvents();
-            processFeatureNode(dataSource, element, undefined, entityCollection, styleCollection, sourceUri, uriResolver);
-            entityCollection.resumeEvents();
-
-            deferred.resolve(kml.documentElement);
-        });
-
-        return deferred.promise;
-    }
-
-    function loadKmz(dataSource, entityCollection, blob, sourceUri) {
-        var deferred = when.defer();
-        zip.createReader(new zip.BlobReader(blob), function(reader) {
-            reader.getEntries(function(entries) {
-                var promises = [];
-                var foundKML = false;
-                var uriResolver = {};
-                for (var i = 0; i < entries.length; i++) {
-                    var entry = entries[i];
-                    if (!entry.directory) {
-                        var innerDefer = when.defer();
-                        promises.push(innerDefer.promise);
-                        if (!foundKML && /\.kml$/i.test(entry.filename)) {
-                            //Only the first KML file found in the zip is used.
-                            //https://developers.google.com/kml/documentation/kmzarchives
-                            foundKML = true;
-                            loadXmlFromZip(reader, entry, uriResolver, innerDefer);
-                        } else {
-                            loadDataUriFromZip(reader, entry, uriResolver, innerDefer);
+        return Promise.all(processStyles(dataSource, kml, styleCollection, sourceUri, false, uriResolver))
+            .then(function() {
+                var element = kml.documentElement;
+                if (element.localName === 'kml') {
+                    var childNodes = element.childNodes;
+                    for (var i = 0; i < childNodes.length; i++) {
+                        var tmp = childNodes[i];
+                        if (defined(featureTypes[tmp.localName])) {
+                            element = tmp;
+                            break;
                         }
                     }
                 }
-                when.all(promises).then(function() {
-                    reader.close();
-                    if (!defined(uriResolver.kml)) {
-                        deferred.reject(new RuntimeError('KMZ file does not contain a KML document.'));
-                        return;
-                    }
-                    uriResolver.keys = Object.keys(uriResolver);
-                    return loadKml(dataSource, entityCollection, uriResolver.kml, sourceUri, uriResolver);
-                }).then(deferred.resolve).otherwise(deferred.reject);
-            });
-        }, function(e) {
-            deferred.reject(e);
-        });
+                entityCollection.suspendEvents();
+                processFeatureNode(dataSource, element, undefined, entityCollection, styleCollection, sourceUri, uriResolver);
+                entityCollection.resumeEvents();
 
-        return deferred.promise;
+                return kml.documentElement;
+            });
+    }
+
+    function loadKmz(dataSource, entityCollection, blob, sourceUri) {
+        return new Promise(function(resolve, reject) {
+            zip.createReader(new zip.BlobReader(blob), function(reader) {
+                reader.getEntries(function(entries) {
+                    var promises = [];
+                    var foundKML = false;
+                    var uriResolver = {};
+                    for (var i = 0; i < entries.length; i++) {
+                        var entry = entries[i];
+                        if (!entry.directory) {
+                            if (!foundKML && /\.kml$/i.test(entry.filename)) {
+                                //Only the first KML file found in the zip is used.
+                                //https://developers.google.com/kml/documentation/kmzarchives
+                                foundKML = true;
+                                promises.push(loadXmlFromZip(entry, uriResolver));
+                            } else {
+                                promises.push(loadDataUriFromZip(entry, uriResolver));
+                            }
+                        }
+                    }
+                    Promise.all(promises).then(function() {
+                        reader.close();
+                        if (!defined(uriResolver.kml)) {
+                            reject(new RuntimeError('KMZ file does not contain a KML document.'));
+                            return;
+                        }
+                        uriResolver.keys = Object.keys(uriResolver);
+                        return loadKml(dataSource, entityCollection, uriResolver.kml, sourceUri, uriResolver);
+                    }).then(resolve).catch(reject);
+                });
+            }, function(e) {
+                reject(e);
+            });
+        });
     }
 
     function load(dataSource, entityCollection, data, options) {
@@ -2045,50 +2043,53 @@ define([
             sourceUri = defaultValue(sourceUri, data);
         }
 
-        return when(promise, function(dataToLoad) {
-            if (dataToLoad instanceof Blob) {
-                return isZipFile(dataToLoad).then(function(isZip) {
-                    if (isZip) {
-                        return loadKmz(dataSource, entityCollection, dataToLoad, sourceUri);
-                    }
-                    return when(readBlobAsText(dataToLoad)).then(function(text) {
-                        //There's no official way to validate if a parse was successful.
-                        //The following check detects the error on various browsers.
-
-                        //IE raises an exception
-                        var kml;
-                        var error;
-                        try {
-                            kml = parser.parseFromString(text, 'application/xml');
-                        } catch (e) {
-                            error = e.toString();
-                        }
-
-                        //The parse succeeds on Chrome and Firefox, but the error
-                        //handling is different in each.
-                        if (defined(error) || kml.body || kml.documentElement.tagName === 'parsererror') {
-                            //Firefox has error information as the firstChild nodeValue.
-                            var msg = defined(error) ? error : kml.documentElement.firstChild.nodeValue;
-
-                            //Chrome has it in the body text.
-                            if (!msg) {
-                                msg = kml.body.innerText;
+        return promise
+            .then(function(dataToLoad) {
+                if (dataToLoad instanceof Blob) {
+                    return isZipFile(dataToLoad)
+                        .then(function(isZip) {
+                            if (isZip) {
+                                return loadKmz(dataSource, entityCollection, dataToLoad, sourceUri);
                             }
+                            return readBlobAsText(dataToLoad)
+                                .then(function(text) {
+                                    //There's no official way to validate if a parse was successful.
+                                    //The following check detects the error on various browsers.
 
-                            //Return the error
-                            throw new RuntimeError(msg);
-                        }
-                        return loadKml(dataSource, entityCollection, kml, sourceUri, undefined);
-                    });
-                });
-            } else {
-                return when(loadKml(dataSource, entityCollection, dataToLoad, sourceUri, undefined));
-            }
-        }).otherwise(function(error) {
-            dataSource._error.raiseEvent(dataSource, error);
-            console.log(error);
-            return when.reject(error);
-        });
+                                    //IE raises an exception
+                                    var kml;
+                                    var error;
+                                    try {
+                                        kml = parser.parseFromString(text, 'application/xml');
+                                    } catch (e) {
+                                        error = e.toString();
+                                    }
+
+                                    //The parse succeeds on Chrome and Firefox, but the error
+                                    //handling is different in each.
+                                    if (defined(error) || kml.body || kml.documentElement.tagName === 'parsererror') {
+                                        //Firefox has error information as the firstChild nodeValue.
+                                        var msg = defined(error) ? error : kml.documentElement.firstChild.nodeValue;
+
+                                        //Chrome has it in the body text.
+                                        if (!msg) {
+                                            msg = kml.body.innerText;
+                                        }
+
+                                        //Return the error
+                                        throw new RuntimeError(msg);
+                                    }
+                                    return loadKml(dataSource, entityCollection, kml, sourceUri, undefined);
+                                });
+                        });
+                } else {
+                    return loadKml(dataSource, entityCollection, dataToLoad, sourceUri, undefined);
+                }
+            }).catch(function(error) {
+                dataSource._error.raiseEvent(dataSource, error);
+                console.log(error);
+                return Promise.reject(error);
+            });
     }
 
     /**
@@ -2303,7 +2304,7 @@ define([
 
         var that = this;
         return load(this, this._entityCollection, data, options).then(function() {
-            return when.all(that._promises, function() {
+            return Promise.all(that._promises, function() {
                 var clock;
 
                 var availability = that._entityCollection.computeAvailability();
@@ -2359,11 +2360,11 @@ define([
 
                 return that;
             });
-        }).otherwise(function(error) {
+        }).catch(function(error) {
             DataSource.setLoading(that, false);
             that._error.raiseEvent(that, error);
             console.log(error);
-            return when.reject(error);
+            return Promise.reject(error);
         });
     };
 
@@ -2568,7 +2569,7 @@ define([
                     href = processNetworkLinkQueryString(that._camera, that._canvas, href, networkLink.viewBoundScale, lastCameraView.bbox);
                     load(that, newEntityCollection, href)
                         .then(getNetworkLinkUpdateCallback(that, networkLink, newEntityCollection, newNetworkLinks, href))
-                        .otherwise(function(error) {
+                        .catch(function(error) {
                             var msg = 'NetworkLink ' + networkLink.href + ' refresh failed: ' + error;
                             console.log(msg);
                             that._error.raiseEvent(that, msg);

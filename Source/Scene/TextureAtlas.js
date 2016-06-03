@@ -14,7 +14,7 @@ define([
         '../Renderer/Framebuffer',
         '../Renderer/RenderState',
         '../Renderer/Texture',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         BoundingRectangle,
         Cartesian2,
@@ -30,7 +30,7 @@ define([
         Framebuffer,
         RenderState,
         Texture,
-        when) {
+        Promise) {
     'use strict';
 
     // The atlas is made up of regions of space called nodes that contain images or child nodes.
@@ -365,7 +365,7 @@ define([
 
         var that = this;
 
-        indexPromise = when(image, function(image) {
+        indexPromise = Promise.resolve(image).then(function(image) {
             if (that.isDestroyed()) {
                 return -1;
             }
@@ -407,7 +407,7 @@ define([
         }
 
         var that = this;
-        return when(indexPromise, function(index) {
+        return indexPromise.then(function(index) {
             if (index === -1) {
                 // the atlas is destroyed
                 return -1;

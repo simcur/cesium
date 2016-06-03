@@ -12,7 +12,7 @@ define([
         '../../Core/Rectangle',
         '../../Scene/SceneMode',
         '../../ThirdParty/knockout',
-        '../../ThirdParty/when',
+        '../../ThirdParty/bluebird',
         '../createCommand'
     ], function(
         BingMapsApi,
@@ -27,7 +27,7 @@ define([
         Rectangle,
         SceneMode,
         knockout,
-        when,
+        Promise,
         createCommand) {
     'use strict';
 
@@ -246,7 +246,7 @@ define([
             callbackParameterName : 'jsonp'
         });
 
-        var geocodeInProgress = viewModel._geocodeInProgress = when(promise, function(result) {
+        var geocodeInProgress = viewModel._geocodeInProgress = promise.then(function(result) {
             if (geocodeInProgress.cancel) {
                 return;
             }

@@ -1,4 +1,4 @@
-/*global define*/
+b/*global define*/
 define([
         '../Core/Cartesian3',
         '../Core/Color',
@@ -15,7 +15,7 @@ define([
         '../Core/RuntimeError',
         '../Scene/VerticalOrigin',
         '../ThirdParty/topojson',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BillboardGraphics',
         './CallbackProperty',
         './ColorMaterialProperty',
@@ -41,7 +41,7 @@ define([
         RuntimeError,
         VerticalOrigin,
         topojson,
-        when,
+        Promise,
         BillboardGraphics,
         CallbackProperty,
         ColorMaterialProperty,
@@ -263,18 +263,18 @@ define([
             }
         }
 
-        var canvasOrPromise;
+        var pinPromise;
         if (defined(symbol)) {
             if (symbol.length === 1) {
-                canvasOrPromise = dataSource._pinBuilder.fromText(symbol.toUpperCase(), color, size);
+                pinPromise = Promise.resolve(dataSource._pinBuilder.fromText(symbol.toUpperCase(), color, size));
             } else {
-                canvasOrPromise = dataSource._pinBuilder.fromMakiIconId(symbol, color, size);
+                pinPromise = dataSource._pinBuilder.fromMakiIconId(symbol, color, size);
             }
         } else {
-            canvasOrPromise = dataSource._pinBuilder.fromColor(color, size);
+            pinPromise = Promise.resolve(dataSource._pinBuilder.fromColor(color, size));
         }
 
-        dataSource._promises.push(when(canvasOrPromise, function(dataUrl) {
+        dataSource._promises.push(pinPromise.then(function(dataUrl) {
             var billboard = new BillboardGraphics();
             billboard.verticalOrigin = new ConstantProperty(VerticalOrigin.BOTTOM);
             billboard.image = new ConstantProperty(dataUrl);
@@ -760,7 +760,7 @@ define([
 
         DataSource.setLoading(this, true);
 
-        var promise = data;
+        var promise;
         options = defaultValue(options, defaultValue.EMPTY_OBJECT);
         var sourceUri = options.sourceUri;
         if (typeof data === 'string') {
@@ -768,6 +768,8 @@ define([
                 sourceUri = data;
             }
             promise = loadJson(data);
+        } else {
+            promise = Promise.resolve(data);
         }
 
         options = {
@@ -781,13 +783,13 @@ define([
         };
 
         var that = this;
-        return when(promise, function(geoJson) {
+        return promise.then(function(geoJson) {
             return load(that, geoJson, options, sourceUri);
-        }).otherwise(function(error) {
+        }).catch(function(error) {
             DataSource.setLoading(that, false);
             that._error.raiseEvent(that, error);
             console.log(error);
-            return when.reject(error);
+            return Promise.reject(error);
         });
     };
 
@@ -847,11 +849,11 @@ define([
             }
         }
 
-        return when(crsFunction, function(crsFunction) {
+        return Promise.resolve(crsFunction).then(function(crsFunction) {
             that._entityCollection.removeAll();
             typeHandler(that, geoJson, geoJson, crsFunction, options);
 
-            return when.all(that._promises, function() {
+            return Promise.all(that._promises, function() {
                 that._promises.length = 0;
                 DataSource.setLoading(that, false);
                 return that;

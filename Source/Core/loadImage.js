@@ -1,12 +1,12 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue',
         './defined',
         './DeveloperError',
         './isCrossOriginUrl'
     ], function(
-        when,
+        Promise,
         defaultValue,
         defined,
         DeveloperError,
@@ -14,6 +14,19 @@ define([
     'use strict';
 
     var dataUriRegex = /^data:/;
+
+    function createImage(url, allowCrossOrigin) {
+        var crossOrigin;
+
+        // data URIs can't have allowCrossOrigin set.
+        if (dataUriRegex.test(url) || !allowCrossOrigin) {
+            crossOrigin = false;
+        } else {
+            crossOrigin = isCrossOriginUrl(url);
+        }
+
+        return loadImage.createImage(url, crossOrigin);
+    }
 
     /**
      * Asynchronously loads the given image URL.  Returns a promise that will resolve to
@@ -53,41 +66,36 @@ define([
 
         allowCrossOrigin = defaultValue(allowCrossOrigin, true);
 
-        return when(url, function(url) {
-            var crossOrigin;
-
-            // data URIs can't have allowCrossOrigin set.
-            if (dataUriRegex.test(url) || !allowCrossOrigin) {
-                crossOrigin = false;
-            } else {
-                crossOrigin = isCrossOriginUrl(url);
-            }
-
-            var deferred = when.defer();
-
-            loadImage.createImage(url, crossOrigin, deferred);
-
-            return deferred.promise;
+        if (typeof url === 'string') {
+            return createImage(url, allowCrossOrigin);
+        }
+        if (url.isFulfilled()) {
+            return createImage(url.value(), allowCrossOrigin);
+        }
+        return url.then(function(url) {
+            return createImage(url, allowCrossOrigin);
         });
     }
 
     // This is broken out into a separate function so that it can be mocked for testing purposes.
-    loadImage.createImage = function(url, crossOrigin, deferred) {
-        var image = new Image();
+    loadImage.createImage = function(url, crossOrigin) {
+        return new Promise(function(resolve, reject) {
+            var image = new Image();
 
-        image.onload = function() {
-            deferred.resolve(image);
-        };
+            image.onload = function() {
+                resolve(image);
+            };
 
-        image.onerror = function(e) {
-            deferred.reject(e);
-        };
+            image.onerror = function(e) {
+                reject(e);
+            };
 
-        if (crossOrigin) {
-            image.crossOrigin = '';
-        }
+            if (crossOrigin) {
+                image.crossOrigin = '';
+            }
 
-        image.src = url;
+            image.src = url;
+        });
     };
 
     loadImage.defaultCreateImage = loadImage.createImage;

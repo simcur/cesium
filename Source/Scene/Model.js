@@ -46,7 +46,7 @@ define([
         '../Renderer/WebGLConstants',
         '../ThirdParty/gltfDefaults',
         '../ThirdParty/Uri',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './getModelAccessor',
         './HeightReference',
         './ModelAnimationCache',
@@ -104,7 +104,7 @@ define([
         WebGLConstants,
         gltfDefaults,
         Uri,
-        when,
+        Promise,
         getModelAccessor,
         HeightReference,
         ModelAnimationCache,
@@ -489,7 +489,7 @@ define([
         this._allowPicking = defaultValue(options.allowPicking, true);
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         /**
          * The currently playing glTF animations.

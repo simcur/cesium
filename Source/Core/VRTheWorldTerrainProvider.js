@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './Credit',
         './defaultValue',
         './defined',
@@ -19,7 +19,7 @@ define([
         './throttleRequestByServer',
         './TileProviderError'
     ], function(
-        when,
+        Promise,
         Credit,
         defaultValue,
         defined,
@@ -80,7 +80,7 @@ define([
 
         this._errorEvent = new Event();
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         this._proxy = options.proxy;
 

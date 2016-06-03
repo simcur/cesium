@@ -6,7 +6,7 @@ define([
         '../Core/defineProperties',
         '../Core/Event',
         '../Core/GeographicTilingScheme',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         Color,
         defaultValue,
@@ -14,7 +14,7 @@ define([
         defineProperties,
         Event,
         GeographicTilingScheme,
-        when) {
+        Promise) {
     'use strict';
 
     var defaultColor = new Color(1.0, 1.0, 1.0, 0.4);
@@ -63,7 +63,7 @@ define([
         // We only need a single canvas since all tiles will be the same
         this._canvas = this._createGridCanvas();
 
-        this._readyPromise = when.resolve(true);
+        this._readyPromise = Promise.resolve(true);
     }
 
     defineProperties(GridImageryProvider.prototype, {

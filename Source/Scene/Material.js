@@ -29,7 +29,7 @@ define([
         '../Shaders/Materials/RimLightingMaterial',
         '../Shaders/Materials/StripeMaterial',
         '../Shaders/Materials/Water',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         Cartesian2,
         clone,
@@ -60,7 +60,7 @@ define([
         RimLightingMaterial,
         StripeMaterial,
         WaterMaterial,
-        when) {
+        Promise) {
     'use strict';
 
     /**
@@ -735,7 +735,7 @@ define([
 
             if (uniformValue !== material._texturePaths[uniformId]) {
                 if (typeof uniformValue === 'string') {
-                    when(loadImage(uniformValue), function(image) {
+                    loadImage(uniformValue).then(function(image) {
                         material._loadedImages.push({
                             id : uniformId,
                             image : image
@@ -791,7 +791,7 @@ define([
                     loadImage(uniformValue.negativeZ)
                 ];
 
-                when.all(promises).then(function(images) {
+                Promise.all(promises).then(function(images) {
                     material._loadedCubeMaps.push({
                         id : uniformId,
                         images : images

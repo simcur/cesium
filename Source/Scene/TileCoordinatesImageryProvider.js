@@ -6,7 +6,7 @@ define([
         '../Core/defineProperties',
         '../Core/Event',
         '../Core/GeographicTilingScheme',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         Color,
         defaultValue,
@@ -14,7 +14,7 @@ define([
         defineProperties,
         Event,
         GeographicTilingScheme,
-        when) {
+        Promise) {
     'use strict';
 
     /**
@@ -42,7 +42,7 @@ define([
         this._errorEvent = new Event();
         this._tileWidth = defaultValue(options.tileWidth, 256);
         this._tileHeight = defaultValue(options.tileHeight, 256);
-        this._readyPromise = when.resolve(true);
+        this._readyPromise = Promise.resolve(true);
     }
 
     defineProperties(TileCoordinatesImageryProvider.prototype, {

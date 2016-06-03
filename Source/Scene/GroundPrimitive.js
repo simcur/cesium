@@ -24,7 +24,7 @@ define([
         '../Renderer/ShaderSource',
         '../Shaders/ShadowVolumeFS',
         '../Shaders/ShadowVolumeVS',
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './BlendingState',
         './DepthFunction',
         './Pass',
@@ -58,7 +58,7 @@ define([
         ShaderSource,
         ShadowVolumeFS,
         ShadowVolumeVS,
-        when,
+        Promise,
         BlendingState,
         DepthFunction,
         Pass,
@@ -220,7 +220,7 @@ define([
         this._boundingVolumes2D = [];
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         this._primitive = undefined;
         this._debugPrimitive = undefined;

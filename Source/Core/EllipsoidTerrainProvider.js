@@ -1,6 +1,6 @@
 /*global define*/
 define([
-        '../ThirdParty/when',
+        '../ThirdParty/bluebird',
         './defaultValue',
         './defined',
         './defineProperties',
@@ -10,7 +10,7 @@ define([
         './HeightmapTerrainData',
         './TerrainProvider'
     ], function(
-        when,
+        Promise,
         defaultValue,
         defined,
         defineProperties,
@@ -53,7 +53,7 @@ define([
         this._levelZeroMaximumGeometricError = TerrainProvider.getEstimatedLevelZeroGeometricErrorForAHeightmap(this._tilingScheme.ellipsoid, 64, this._tilingScheme.getNumberOfXTilesAtLevel(0));
 
         this._errorEvent = new Event();
-        this._readyPromise = when.resolve(true);
+        this._readyPromise = Promise.resolve(true);
     }
 
     defineProperties(EllipsoidTerrainProvider.prototype, {

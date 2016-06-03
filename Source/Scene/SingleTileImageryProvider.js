@@ -11,7 +11,7 @@ define([
         '../Core/Rectangle',
         '../Core/RuntimeError',
         '../Core/TileProviderError',
-        '../ThirdParty/when'
+        '../ThirdParty/bluebird'
     ], function(
         Credit,
         defaultValue,
@@ -24,7 +24,7 @@ define([
         Rectangle,
         RuntimeError,
         TileProviderError,
-        when) {
+        Promise) {
     'use strict';
 
     /**
@@ -82,7 +82,7 @@ define([
         this._errorEvent = new Event();
 
         this._ready = false;
-        this._readyPromise = when.defer();
+        this._readyPromise = Promise.defer();
 
         var imageUrl = url;
         if (defined(proxy)) {
@@ -121,7 +121,7 @@ define([
         }
 
         function doRequest() {
-            when(loadImage(imageUrl), success, failure);
+            loadImage(imageUrl).then(success).catch(failure);
         }
 
         doRequest();
