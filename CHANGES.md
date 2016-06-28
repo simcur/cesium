@@ -12,6 +12,7 @@ Change Log
 * `Clock` now keeps its configuration settings self-consistent. Previously, this was done by `AnimationViewModel` and could become inconsistent in certain cases. [#4007](https://github.com/AnalyticalGraphicsInc/cesium/pull/4007)
 * Updated Cardboard Sandcastle example.
 * Added the hot air balloon sample model.
+* `KmlDataSource` now throws `unsupportedNodeEvent` when parsing KML nodes not yet supported by Cesium.
 
 ### 1.22.2 - 2016-06-14
 * This is an npm only release to fix the improperly published 1.22.1. There were no code changes.
